@@ -1,7 +1,3 @@
 <?php
-include 'templates/header.php';
-?>
-
-dadada
-<?php
-include 'templates/footer.php';
+header('Location: pages/homepage.php');
+exit();

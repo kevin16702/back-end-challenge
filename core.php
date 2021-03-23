@@ -18,4 +18,11 @@ function openDatabaseConnection()
 
 	return $db;
 }
+
+function stripData($data){
+    $data = trim($data);
+    $data = stripslashes($data);
+	$data = htmlspecialchars($data);
+	return $data;
+}
 ?>

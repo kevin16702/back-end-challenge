@@ -1,6 +1,9 @@
 strong{
     text-shadow: 0px 0px 10px rgba(0, 0, 0, 1);
 }
+.text-larger{
+    font-size: 20px;
+}
 body{
     background-image: url("images/background-list-maker.jpg");
 }
@@ -20,4 +23,23 @@ body{
 }
 .hidden{
     display: none;
+}
+.close-button{
+    position: relative;
+    margin-left: auto;
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    background-color: white;
+    border-radius: 300px;
+    border: 1px solid black;
+}
+.close-button:hover{
+    cursor: pointer;
+}
+#makeList{
+    z-index: 10;
+}
+.text-medium{
+    font-size: 18px;
 }

@@ -1,6 +1,14 @@
 <?php 
 include 'templates/header.php';
 $db = openDatabaseConnection();
+function sortByTime($a, $b){
+    $a = strtotime($a['Duration']);
+    $b = strtotime($b['Duration']);
+    return $a - $b;
+  }
+function sortByStatus($a, $b){
+    return strcasecmp($a['Status'], $b['Status']);
+}
 function getListData($db){
 
     $sql = "SELECT * FROM lists";
@@ -69,7 +77,7 @@ $tasks = linkTaskToListData($lists, $tasks);
 
     <form action='' method="post" class="row hidden m-3" id='<?= "deleteList" . $index; ?>'>
                 <div class="w-100">Weet u het zeker dat u deze lijst wilt verwijderen?</div>
-                <input type="hidden" value="<?= $list['Name']; ?>" name="deleteListName">
+                <input type="hidden" value="<?= $list['ID']; ?>" name="deleteListID">
                 <button name="deleteListSubmit" type="submit" value="<?= $list['ID']; ?>" class="btn btn-success px-2">Ja</button>
                 <button onclick="document.getElementById('deleteListSubmit<?= $index; ?>').classList.toggle('hidden');" class="btn">Nee</button>
     </form>
@@ -83,20 +91,56 @@ $tasks = linkTaskToListData($lists, $tasks);
 
     <?php if($tasks[$list['ID']] ){ ?>
     <div class="text-center mt-3 w-100">Taken overzicht</div>
+    <div>sorteer op 
+        <form class="row" method="post">
+            <div class="w-100 px-5">
+                <input name="sort" type="radio">Standaard
+            </div>
+            <div class="w-100 px-5">
+                <input name="sort" type="radio" value="time">Tijd
+            </div>
+            <div class="w-100 px-5">
+                <input name="sort" type="radio" value="status">Status
+            </div>
+            <button type="submit" class="btn btn-success mx-5" name="submitSort">Sorteer</button>
+        </form>
+    </div>
     <hr>
     <ul>   
         <?php
+        if(isset($_POST['submitSort'])){
+            $sortValue = $_POST['sort'];
+            if($sortValue == "time"){
+                usort($tasks[$list['ID']], 'sortByTime');   
+            }
+            if($sortValue == "status"){
+                usort($tasks[$list['ID']], 'sortByStatus');
+            }
+        }
         $taskIndex = 0;
         foreach($tasks[$list['ID']] as $task){if($task){ $taskIndex++;?>
-        <li class="position-relative"><?= $task['Name'] . ', Duur: ' . $task['Duration']; ?></li>
-        <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteList<?= $index; ?>Task<?= $taskIndex; ?>').classList.toggle('hidden');">Verwijder taak</button>
-        <button type="button" class="btn btn-warning" onclick="document.getElementById('modifyList<?= $index; ?>Task<?= $taskIndex; ?>').classList.toggle('hidden');">Bewerk taak</button>
-        <?php } ?>
+        <li class="position-relative mb-3"><?= $task['Name'] . ', Duur: ' . $task['Duration']; ?></br>Status: <?= $task['Status']; ?></li>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('modifyStatus<?= $index; ?>Task<?= $taskIndex; ?>').classList.toggle('hidden'); document.getElementById('modifyList<?= $index; ?>Task<?= $taskIndex; ?>').classList.add('hidden'); document.getElementById('deleteList<?= $index; ?>Task<?= $taskIndex; ?>').classList.add('hidden');">Bewerk Status</button>
+        <form method="post" class="row hidden" id="modifyStatus<?= $index; ?>Task<?= $taskIndex; ?>">
+        <div class="w-100 px-3">
+                <input name="status" type="radio" value="Nog niet begonnen">Nog niet begonnen
+            </div>
+            <div class="w-100 px-3">
+                <input name="status" type="radio" value="Bezig">Bezig
+            </div>
+            <div class="w-100 px-3">
+                <input name="status" type="radio" value="Voltooid">Voltooid
+            </div>
+            <button type="submit" class="btn btn-success mx-3 mb-4" value="<?= $task['ID']; ?>" name="submitStatus">Wijzig verandering</button>
+        </form>
+        <button type="button" class="btn btn-danger" onclick="document.getElementById('deleteList<?= $index; ?>Task<?= $taskIndex; ?>').classList.toggle('hidden'); document.getElementById('modifyList<?= $index; ?>Task<?= $taskIndex; ?>').classList.add('hidden'); document.getElementById('modifyStatus<?= $index; ?>Task<?= $taskIndex; ?>').classList.add('hidden');">Verwijder taak</button>
         <form action='' method="post" class="row hidden" id='<?= "deleteList" . $index .'Task' . $taskIndex; ?>'>
                 <div class="w-100">Weet u het zeker dat u deze lijst wilt verwijderen?</div>
                 <button name="deleteTaskSubmit" type="submit" value="<?= $task['ID']; ?>" class="btn btn-success px-2">Ja</button>
                 <button onclick="document.getElementById('deleteList<?= $index; ?>Task<?= $taskIndex; ?>').classList.toggle('hidden');" class="btn">Nee</button>
     </form>
+        <button type="button" class="btn btn-warning" onclick="document.getElementById('modifyList<?= $index; ?>Task<?= $taskIndex; ?>').classList.toggle('hidden'); document.getElementById('deleteList<?= $index; ?>Task<?= $taskIndex; ?>').classList.add('hidden'); document.getElementById('modifyStatus<?= $index; ?>Task<?= $taskIndex; ?>').classList.add('hidden');">Bewerk taak</button>
+        <?php } ?>
     <form action='' method="post" class="row hidden" id='<?= "modifyList" . $index .'Task' . $taskIndex; ?>'>
                 <div class="w-100">Bewerk taak</div>
                 <label>Naam: <input type="text" name="modifyTaskName" value="<?= $task['Name']; ?>" required></label>
@@ -136,10 +180,10 @@ if(isset($_POST['deleteListSubmit'])){
     $stmt = $db->prepare($sql);
     $stmt->execute([$ID]);
 
-    $name = $_POST['deleteListName'];
-    $sql = "DELETE FROM tasks WHERE List = ?";
+    $listID = $_POST['deleteListID'];
+    $sql = "DELETE FROM tasks WHERE ListID = ?";
     $stmt = $db->prepare($sql);
-    $stmt->execute([$name]);
+    $stmt->execute([$listID]);
     echo "<meta http-equiv='refresh' content='0'>";
 }
 if(isset($_POST['deleteTaskSubmit'])){
@@ -164,6 +208,14 @@ if(isset($_POST['modifyTaskSubmit'])){
     $sql =  "UPDATE tasks SET Name = ? WHERE ID = ?";
     $stmt = $db->prepare($sql);
     $stmt->execute([$name, $ID]);  
+    echo "<meta http-equiv='refresh' content='0'>";  
+}
+if(isset($_POST['submitStatus'])){
+    $ID = $_POST['submitStatus'];
+    $status = $_POST['status'];
+    $sql = "UPDATE tasks SET Status = ? WHERE ID = ?";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$status, $ID]);
     echo "<meta http-equiv='refresh' content='0'>";  
 }
 ?>
